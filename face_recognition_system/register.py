@@ -141,7 +141,7 @@ def viewFakeandReal(img):
 
 
 
-def getFace(frame):
+def getFace(frame,companyCode):
     # face_locations=face_recognition.face_locations(frame)
     # print('reach 10',face_locations)
     # print('reach 1')
@@ -158,7 +158,7 @@ def getFace(frame):
                 # check2=[]
                 # count=False
                 excelDataSet=r"D:\face\face_recognition_system\Employee_details.csv"
-                path =r"D:\face\face_recognition_system\dataset"
+                path ="D:/face/face_recognition_system/dataset/"+companyCode
 
 
                 l1 = [os.path.join(path, f) for f in os.listdir(path) if not f.endswith('.pkl')]
@@ -178,7 +178,7 @@ def getFace(frame):
                         
                         userImagePath =check[0]['identity'].values[0]
                         print(userImagePath)
-                        Attendance_auto(face_id)
+                        Attendance_auto(face_id,companyCode=companyCode)
                     
                     
                         emp_df=pd.read_csv(excelDataSet)
@@ -195,41 +195,7 @@ def getFace(frame):
                 
 
                 
-            
-                # l1 = [os.path.join(path, f) for f in os.listdir(path) if f.endswith('.jpg')]
-                
-                # if frame is not None:
-                #     pt("check start 7")    
-                #     for i in l1:
-                #         known_ids.append(os.path.splitext(os.path.basename(i))[0])
-                #     _=DeepFace.build_model("Facenet")
-                #     # enforce_detection=False,
-                #     pt("check start")    
-                #     check=DeepFace.find(frame,path,model_name='Facenet',distance_metric="euclidean",normalization='Facenet',detector_backend='yolov8',threshold=9,silent=True)
-                #     pt("check",check)    
-                #     # print("check[0]['identity'].values", check[0]['identity'].values)
-                #     if check[0]['identity'].values:
-                #         face_id=os.path.splitext(os.path.basename(check[0]['identity'].values[0]))[0]
-                #         pt(face_id)
-                        
-                #         userImagePath =check[0]['identity'].values[0]
-                #         pt(userImagePath)
-                    
-                       
-                #         emp_df=pd.read_csv(excelDataSet)
-                #         check3=emp_df[face_id==emp_df['EmployeeID'].astype(str)]
-                #         userDetails=check3.to_dict(orient='records')[0]
-                #         Attendance_auto(face_id)
-                #         return respons("ok","'your data is already in dd!")
-                #         # return "ok"
-                #     else:
-                #         return respons("notin","Your not a ragister.")
-                # else:
-                #     # return 'Unable to process image'
-                #     return respons("error","'Unable to process image!!!!")
-           
-           
-           
+      
            
            
             else:
@@ -345,9 +311,9 @@ def Attendance_out(id):
         else:
             return f"{face_id} is not in the database!"
 
-def Attendance_auto(id):
+def Attendance_auto(id,companyCode):
     excelDataSet=r"D:\face\face_recognition_system\Employee_details.csv"
-    path =r"D:\face\face_recognition_system\dataset"
+    path ="D:/face/face_recognition_system/dataset/"+companyCode
     excelAttendanceData = r"D:\face\face_recognition_system\Attendance.csv"
     known_ids = []
     data = []
@@ -404,6 +370,209 @@ def Attendance_auto(id):
         else:
             print("Employee ID not recognized")
 
+def register(face_base64_1, face_base64_2, id, name, dept,companyCode):
+    
+        print("Start Time ", datetime.now().strftime('%H-%M-%S'))
+        known_ids=[]
+        # excelDataSet = r"C:\Users\bhushan\Downloads\face_recognition_system 1\Employee_details.csv"
+        # parent_path = r"C:\Users\bhushan\Downloads\face_recognition_system 1\dataset2"
+
+        excelDataSet="D:/face/face_recognition_system/Employee_details.csv"
+        parent_path = "D:/face/face_recognition_system/dataset/"+companyCode
+
+        l1 = [os.path.join(parent_path, f) for f in os.listdir(parent_path) if not f.endswith('.pkl')]
+        # Create a subfolder with the employee ID
+        
+
+        frame = bs64_to_frame(face_base64_1)
+        frame2 = bs64_to_frame(face_base64_2)
+        
+        if frame is not None:
+            
+              # Update path to the employee's subfolder
+            for i in l1:
+                known_ids.append(os.path.splitext(os.path.basename(i))[0])
+            if id in known_ids:
+                return respons("error","your data is already in dd!!!!!")
+                # print(os.path.splitext(os.path.basename(i))[0])
+            _ = DeepFace.build_model("Facenet")
+            check = DeepFace.find(frame, parent_path, model_name='Facenet', normalization='Facenet', detector_backend='yolov8', threshold=0.40,silent=True)
+            # print(len(check[0]['identity'].values))
+            
+            if len(check[0]['identity'].values)>0:
+                return respons("ok", "Your data is already in the system!")
+
+            else:
+                employee_folder = os.path.join(parent_path, str(id))
+                if not os.path.exists(employee_folder):
+                    os.makedirs(employee_folder)
+                path = employee_folder
+                # cv2.imshow("First Image", frame)
+                # cv2.imshow("Second Image", frame2)
+                # cv2.waitKey(0)
+
+                cv2.imwrite(os.path.join(path, f'1.jpg'), frame)
+                cv2.imwrite(os.path.join(path, f'2.jpg'), frame2)
+
+                # Append employee details to CSV file
+                if not os.path.exists(excelDataSet):
+                    with open(excelDataSet, 'w') as ff:
+                        csv_writer = csv.writer(ff)
+                        csv_writer.writerow(['EmployeeID', 'Emp_name', 'Department'])
+                        csv_writer.writerow([id, name, dept])
+                        df = pd.read_csv(excelDataSet)
+                        df.to_csv(excelDataSet, index=False)
+                        return respons("ok", "Employee details saved successfully!")
+                else:
+                    with open(excelDataSet, 'a') as ff:
+                        csv_reading = pd.read_csv(excelDataSet)
+                        csv_writer = csv.writer(ff)
+                        if id in csv_reading['EmployeeID'].values:
+                            return respons("error", "Employee ID already exists in the dataset!")
+                        else:
+                            csv_writer.writerow([id, name, dept])
+                            df = pd.read_csv(excelDataSet)
+                            df.to_csv(excelDataSet, index=False)
+                            return respons("ok", "Employee details saved successfully!")        
+        else:
+            return respons("error", "Unable to process image")
+
+
+
+
+
+
+def update(emp_id,updates,face_base64_1=None,face_base64_2=None,name=None,dept=None):
+   
+
+    excelDataSet="D:/face/face_recognition_system/Employee_details.csv"
+    parent_path = "D:/face/face_recognition_system/dataset/"
+    # l1 = [os.path.join(path, f) for f in os.listdir(path) if not f.endswith('.pkl')]
+   
+    emp_df=pd.read_csv(excelDataSet)
+    known_ids=list(emp_df['EmployeeID'].values)
+    if updates=='images':
+        if emp_id in known_ids:
+            frame = bs64_to_frame(face_base64_1)
+            frame2 = bs64_to_frame(face_base64_2)
+            employee_folder = os.path.join(parent_path, str(emp_id))
+            if not os.path.exists(employee_folder):
+                os.makedirs(employee_folder)
+            path = employee_folder
+     
+ 
+            cv2.imwrite(os.path.join(path, f'1.jpg'), frame)
+            cv2.imwrite(os.path.join(path, f'2.jpg'), frame2)
+            return "saved successfully"
+        else:
+            return "wrong Employee ID"
+    elif updates=='name':
+        if emp_id in known_ids:
+            emp=emp_df[emp_df['EmployeeID']==emp_id]
+            # print(emp)
+            emp_df.loc[(emp_df['EmployeeID']==emp_id),'Emp_name']=name
+            emp_df.to_csv(excelDataSet, index=False)
+            return "Details saved"
+        else:
+            return "wrong employee ID"
+    elif updates=='Department':
+        if emp_id in known_ids:
+            emp=emp_df[emp_df['EmployeeID']==emp_id]
+            # print(emp)
+            emp_df.loc[(emp_df['EmployeeID']==emp_id),'Department']=dept
+            emp_df.to_csv(excelDataSet, index=False)
+            return "Details saved"
+        else:
+            return "wrong employee ID"
+
+
+
+
+
+
+
+def get_Details(emp_id,companyCode):
+    global userDetails
+    global userImagePath
+    excelDataSet="D:/face/face_recognition_system/Employee_details.csv"
+    parent_path = "D:/face/face_recognition_system/dataset/"+companyCode
+   
+   
+    df=pd.read_csv(excelDataSet)
+    l1 = [os.path.join(parent_path, f) for f in os.listdir(parent_path) if not f.endswith('.pkl')]
+    known_ids=list(df['EmployeeID'].values)
+    if emp_id in known_ids:
+        for i in l1:
+            if emp_id in i:
+                l2=[os.path.join(i, f) for f in os.listdir(i) if f.endswith('.jpg')]
+                emp_df=df[emp_id==df['EmployeeID']]
+                userImagePath=l2[0]
+                userImagePath2=l2[1]
+                userDetails=emp_df.to_dict(orient='records')[0]
+                userDetails["image1"] = image_to_base64(userImagePath)
+                userDetails["image2"] = image_to_base64(userImagePath2)
+               
+                return json.dumps({
+                    "status":"ok",
+                    "userDetails":userDetails
+                    
+                    })
+    else:
+        return json.dumps({
+                    "status":"error" 
+                    })
+
+
+def updateEmployee(emp_id,name=None,dept=None,face_base64_1=None,face_base64_2=None,companyCode=None):
+  
+    excelDataSet="D:/face/face_recognition_system/Employee_details.csv"
+    parent_path = "D:/face/face_recognition_system/dataset/"+companyCode
+    
+    emp_df=pd.read_csv(excelDataSet)
+    known_ids=list(emp_df['EmployeeID'].values)
+    # for i in l1:
+    #     known_ids.append(os.path.splitext(os.path.basename(i))[0])
+    if face_base64_1:
+        if emp_id in known_ids:
+            frame = bs64_to_frame(face_base64_1)
+            frame2 = bs64_to_frame(face_base64_2)
+            employee_folder = os.path.join(parent_path, str(emp_id))
+            if not os.path.exists(employee_folder):
+                os.makedirs(employee_folder)
+            path = employee_folder
+            cv2.imwrite(os.path.join(path, f'1.jpg'), frame)
+            cv2.imwrite(os.path.join(path, f'2.jpg'), frame2)
+            emp_df.loc[(emp_df['EmployeeID']==emp_id),'Emp_name']=name
+            emp_df.loc[(emp_df['EmployeeID']==emp_id),'Department']=dept
+            # print(emp_df)
+            emp_df.to_csv(excelDataSet, index=False)
+            return json.dumps({
+                    "status":"ok",
+                    "meassge":"Your information has been successfully updated."
+                    })
+        else:
+            return json.dumps({
+                    "status":"error",
+                    "msg":""
+                    })
+    else:
+        if emp_id in known_ids:
+            # emp=emp_df[emp_df['EmployeeID']==emp_id]
+            # print(emp)
+            emp_df.loc[(emp_df['EmployeeID']==emp_id),'Emp_name']=name
+            emp_df.loc[(emp_df['EmployeeID']==emp_id),'Department']=dept
+            # print(emp_df)
+            emp_df.to_csv(excelDataSet, index=False)
+            return json.dumps({
+                        "status":"ok",
+                        "msg":"Your information has been successfully updated."
+                    })
+        else:
+            return json.dumps({
+                    "status":"error",
+                    "msg":""
+                    })
+
 
 
 
@@ -414,19 +583,3 @@ def Attendance_auto(id):
 def pt(value,data=""):
     pass
     # print(value,data)
-# cap=cv2.VideoCapture(0)
-# while True:
-#     ret,frame=cap.read()
-#     if ret:
-#         cv2.imshow('frame', frame)
-#         # face_locations=face_recognition.face_locations(frame)
-#         # print('reach 9',face_locations)
-#         print(getFace(frame))
-        
-        # if cv2.waitKey(1) & 0xFF == ord('q'): 
-        #     break
-# # "E1129","Md","mobile"
-# cap.release()
-# print("end Time ",datetime.now().strftime('%H-%M-%S'))
-# cv2.destroyAllWindows()
-# def register(faec_base64,id,name,dept):
